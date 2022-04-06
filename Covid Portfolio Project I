@@ -1,27 +1,27 @@
-/*select *
-from PortfolioProjectCovid.dbo.CovidVaccinations
-order by 3,4*/
+-- Portfolio Project Covid. 
+-- First (temporary) version (5.4.22): following a video of Alex the Analyst on youtube
+-- Newer version coming up with my own input
 
 select *
 from PortfolioProjectCovid.dbo.CovidDeaths
 order by 3,4
 
--- looking at Total cases vs Total deaths 
--- Shows the percentage of infected people who died
+-- Looking at Total cases vs Total deaths 
+-- Showing the percentage of infected people who died
 select Location, date, total_cases, total_deaths, population,
 (total_deaths/total_cases)*100 AS PercentageCovidDeaths
 from PortfolioProjectCovid.dbo.CovidDeaths
--- WHERE Location like '%Netherland%' AND date like '2020%'
+-- WHERE Location like 'Netherlands' AND date like '2020%'
 order by 1,2
 
--- looking at Total cases vs Population
--- shows what percentage of the population got Covid
+-- Looking at Total cases vs Population
+-- Showing what percentage of the population got Covid
 select Location, date, total_cases, population, (total_cases/population)*100 AS PercentageInfected
 from PortfolioProjectCovid.dbo.CovidDeaths
-WHERE Location like '%Netherland%' 
+WHERE Location like 'Netherlands' 
 order by 1,2
 
--- Looking at countries with highest infection rate compared to population
+-- Looking at countries with highest infection rate
 select Location, population, MAX(total_cases) AS HighestInfectionCount, MAX((total_cases/population))*100 AS PercentageInfected
 from PortfolioProjectCovid.dbo.CovidDeaths
 group by location, population
@@ -41,15 +41,14 @@ WHERE continent is not NULL
 group by continent
 order by PercentageDeathPopulation DESC
 
-
--- global numbers. So basically the data per date for all countries together. 
+-- Global numbers. 
 select date, SUM(new_cases) AS TotalCasesGlobal, SUM(new_deaths) AS TotalDeathsGlobal, (SUM(new_deaths)/SUM(new_cases))*100 AS PercentageDeathGlobal
 from PortfolioProjectCovid.dbo.CovidDeaths
 WHERE continent is not NULL
 group by date
 order by 1,2
 
---Total population versus Vaccination 
+--Total Population versus Vaccination 
 select death.location, death.date, death.population, vaccination.total_vaccinations, (vaccination.total_vaccinations/death.population)*100 AS PercentageVaccinated
 from PortfolioProjectCovid.dbo.CovidDeaths death
 JOIN PortfolioProjectCovid.dbo.CovidVaccinations vaccination
@@ -59,7 +58,7 @@ WHERE death.location LIKE 'Netherlands'
 ORDER BY 1,2
 
 -- Looking at vaccinations. 
--- Just double checking whether the PercentageVaccinated is no longer following PercentageVaccinations when the first FullyVaccinated people start appearing
+-- Exploring whether the PercentageVaccinated is no longer following PercentageVaccinations when the first FullyVaccinated people start appearing
 select death.location, death.date, death.population, vaccination.total_vaccinations, 
 (vaccination.total_vaccinations/death.population)*100 AS PercentageVaccinations,
 (vaccination.people_vaccinated/death.population)*100 AS PercentageVaccinated,
@@ -71,11 +70,13 @@ JOIN PortfolioProjectCovid.dbo.CovidVaccinations vaccination
 WHERE death.location LIKE 'Netherlands'
 ORDER BY 1,2
 
+-- Total vaccinations (two approaches: CTE and temp table)
+
 -- Use CTE
 With PopvsVac (continent, location, date, population, new_vaccinations, TotalPeopleVaccinated)
 as 
 (
--- Looking at sum new vaccinations. Over Partition by location, because we are breaking it up, so that everytime a new location start we want it to restart counting 
+-- Looking at sum new vaccinations. Over Partition by location, because we are breaking it up, so that everytime a new location starts it restarts counting 
 select death.continent, death.location, death.date, death.population, vaccination.new_vaccinations, 
 SUM(CONVERT(float,vaccination.new_vaccinations)) OVER (Partition by death.location ORDER BY death.location, death.date) AS TotalPeopleVaccinated
 --(TotalPeopleVaccinated/population)*100
